@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const generateOtp = require('../utils/generateOtp');
-const sendEmail = require('../utils/sendEmail');
+const { sendOtpEmail } = require('../utils/sendEmail'); // Import the specific function
 const jwt =require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -41,8 +41,8 @@ exports.register = async (req, res, next) => {
     await Otp.create({ email, otp }); // Store OTP associated with the email
 
     // Send OTP email
-    const message = `Your OTP for BestWorkers verification is ${otp}. It will expire in 5 minutes.`;
-    await sendEmail(email, 'Verify Your BestWorkers Account', message);
+    // Use the new sendOtpEmail function
+    await sendOtpEmail(email, name, otp);
 
     res.status(200).json({ // 200 OK as user is not created yet
       success: true,
@@ -211,8 +211,9 @@ exports.resendOtp = async (req, res, next) => {
     await Otp.create({ email, otp });
 
     // Send OTP email
-    const message = `Your new OTP for BestWorkers verification is ${otp}. It will expire in 5 minutes.`;
-    await sendEmail(email, 'Verify Your BestWorkers Account', message);
+    // For resend, you might not have the user's name readily available unless you fetch it.
+    const user = await User.findOne({ email }).select('name').lean(); // Optional: fetch user name
+    await sendOtpEmail(email, user ? user.name : null, otp);
 
     res.status(200).json({
       success: true,
